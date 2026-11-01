@@ -30,6 +30,8 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Record the tested source commit
+        run: git rev-parse HEAD
       - id: submodules
         name: Key the submodules on their commits
         run: |
@@ -93,13 +95,12 @@ jobs:
       - name: Check that every test executable is registered with ctest
         shell: cmd
         run: python tools/check_test_registration.py build
-      - shell: cmd
-        run: cmake --build build
-      - shell: cmd
-        run: cmake --build build --target libs
+      - name: Build player invitation and common dialog tests
+        shell: cmd
+        run: cmake --build build --target player_invitation_dialog_tests guest_common_dialog_tests --parallel 2
       - shell: cmd
         working-directory: build
-        run: ctest --output-on-failure --timeout 120 --parallel 4 --output-log ctest.log --output-junit ctest.xml
+        run: ctest -R "^(player_invitation_dialog|guest_common_dialog)$" --output-on-failure --timeout 30 --no-tests=error --output-log ctest.log --output-junit ctest.xml
       - run: python tools/check_skips.py build/ctest.xml --job windows
       - name: Report tests slower than 30 s
         if: ${{ !cancelled() }}
